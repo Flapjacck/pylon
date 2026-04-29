@@ -21,4 +21,4 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["main.py"]
+packages = ["src"]
