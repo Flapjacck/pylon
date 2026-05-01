@@ -2,10 +2,27 @@
 
 This module provides endpoints for managing Docker containers including
 listing, starting, stopping, and checking status of containers.
+
+Routes delegate to modular controller functions that handle business logic
+and error handling.
 """
 
-from fastapi import APIRouter
-from typing import Dict, Any
+from fastapi import APIRouter, Depends
+from docker.client import DockerClient
+from docker.errors import APIError
+
+from middleware.docker_client import get_docker_client_dependency
+from controllers.docker import (
+    list_containers_controller,
+    get_container_status_controller,
+    start_container_controller,
+    stop_container_controller,
+)
+from schemas.docker import (
+    ContainerListResponse,
+    ContainerStatusResponse,
+    ContainerActionResponse,
+)
 
 router = APIRouter(
     prefix="/docker",
@@ -14,35 +31,46 @@ router = APIRouter(
 )
 
 
-@router.get("/containers", response_model=Dict[str, Any])
-async def list_containers() -> Dict[str, Any]:
+@router.get("/containers", response_model=ContainerListResponse)
+async def list_containers(
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
+) -> ContainerListResponse:
     """
-    List all Docker containers.
+    List all Docker containers (running and stopped).
     
     Returns:
-        dict: List of all containers with their details
+        ContainerListResponse with list of all containers and count
     """
-    # TODO: Implement logic to list all Docker containers
-    pass
+    try:
+        return await list_containers_controller(docker_client)
+    except APIError as e:
+        raise
+    except Exception as e:
+        raise
 
 
-@router.get("/containers/{container_id}", response_model=Dict[str, Any])
-async def get_container_status(container_id: str) -> Dict[str, Any]:
+@router.get("/containers/{container_id}", response_model=ContainerStatusResponse)
+async def get_container_status(
+    container_id: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
+) -> ContainerStatusResponse:
     """
-    Get the status of a specific Docker container.
+    Get the detailed status of a specific Docker container.
     
     Args:
         container_id: The ID or name of the container
     
     Returns:
-        dict: Container status information
+        ContainerStatusResponse with detailed container status
     """
-    # TODO: Implement logic to get container status
-    pass
+    return await get_container_status_controller(container_id, docker_client)
 
 
-@router.post("/containers/{container_id}/start", response_model=Dict[str, Any])
-async def start_container(container_id: str) -> Dict[str, Any]:
+@router.post("/containers/{container_id}/start", response_model=ContainerActionResponse)
+async def start_container(
+    container_id: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
+) -> ContainerActionResponse:
     """
     Start a Docker container.
     
@@ -50,14 +78,16 @@ async def start_container(container_id: str) -> Dict[str, Any]:
         container_id: The ID or name of the container to start
     
     Returns:
-        dict: Result of the start operation
+        ContainerActionResponse with start operation result
     """
-    # TODO: Implement logic to start a container
-    pass
+    return await start_container_controller(container_id, docker_client)
 
 
-@router.post("/containers/{container_id}/stop", response_model=Dict[str, Any])
-async def stop_container(container_id: str) -> Dict[str, Any]:
+@router.post("/containers/{container_id}/stop", response_model=ContainerActionResponse)
+async def stop_container(
+    container_id: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
+) -> ContainerActionResponse:
     """
     Stop a Docker container.
     
@@ -65,7 +95,6 @@ async def stop_container(container_id: str) -> Dict[str, Any]:
         container_id: The ID or name of the container to stop
     
     Returns:
-        dict: Result of the stop operation
+        ContainerActionResponse with stop operation result
     """
-    # TODO: Implement logic to stop a container
-    pass
+    return await stop_container_controller(container_id, docker_client)
