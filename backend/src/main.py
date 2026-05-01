@@ -13,7 +13,7 @@ from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from typing import Dict, Any
 
 from config import settings
-from routes import health_router
+from routes import health_router, docker_router
 
 # Configure logging for request/response tracking
 logging.basicConfig(
@@ -62,6 +62,7 @@ def create_app() -> FastAPI:
 
     # Register route modules
     app.include_router(health_router)
+    app.include_router(docker_router)
 
     # Root endpoint: Returns API metadata
     @app.get("/", response_model=Dict[str, Any])
