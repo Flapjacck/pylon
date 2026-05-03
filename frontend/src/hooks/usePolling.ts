@@ -77,22 +77,26 @@ export function usePolling<T>(
     const abortControllerRef = useRef<AbortController | null>(null);
     const intervalIdRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const isPollingRef = useRef(false);
+    const isLoadingRef = useRef(false);
+    const fetchFnRef = useRef(fetchFn);
+
+    // Keep the latest fetchFn in a ref so polling setup does not restart when callers pass inline functions
+    useEffect(() => {
+        fetchFnRef.current = fetchFn;
+    }, [fetchFn]);
 
     /**
      * Execute a single poll request
      */
     const executePoll = useCallback(async () => {
         // Skip if already loading or polling has been stopped
-        if (isLoading || !isPollingRef.current) return;
+        if (isLoadingRef.current || !isPollingRef.current) return;
 
+        isLoadingRef.current = true;
         setIsLoading(true);
 
         try {
-            // Create abort signal for this request
-            const abortController = new AbortController();
-            abortControllerRef.current = abortController;
-
-            const result = await fetchFn();
+            const result = await fetchFnRef.current();
             setData(result);
             setError(null);
         } catch (err) {
@@ -101,9 +105,10 @@ export function usePolling<T>(
             const apiError = err as ApiError;
             setError(apiError);
         } finally {
+            isLoadingRef.current = false;
             setIsLoading(false);
         }
-    }, [fetchFn, isLoading]);
+    }, []);
 
     /**
      * Refetch manually (useful for retry after error)
@@ -111,9 +116,12 @@ export function usePolling<T>(
     const refetch = useCallback(async () => {
         isPollingRef.current = true;
 
+        if (isLoadingRef.current) return;
+        isLoadingRef.current = true;
+        setIsLoading(true);
+
         try {
-            setIsLoading(true);
-            const result = await fetchFn();
+            const result = await fetchFnRef.current();
             setData(result);
             setError(null);
         } catch (err) {
@@ -122,6 +130,7 @@ export function usePolling<T>(
             // Stop polling if error occurred
             isPollingRef.current = false;
         } finally {
+            isLoadingRef.current = false;
             setIsLoading(false);
         }
     }, [fetchFn]);
@@ -159,26 +168,18 @@ export function usePolling<T>(
                 abortControllerRef.current.abort();
             }
         };
-    }, [interval, executePoll, autoStart]);
+        // executePoll is stable (uses fetchFnRef) so it's safe to include here
+    }, [interval, autoStart, executePoll]);
 
     // Re-initialize polling if dependencies change
     useEffect(() => {
+        // If caller provided dependencies, trigger a refetch when they change
         if (dependencies && dependencies.length > 0) {
-            // Clear current polling
-            isPollingRef.current = false;
-            if (intervalIdRef.current) {
-                clearInterval(intervalIdRef.current);
-            }
-
-            // Reset state and restart
-            reset();
-            if (autoStart) {
-                isPollingRef.current = true;
-                executePoll();
-                intervalIdRef.current = setInterval(executePoll, interval);
-            }
+            refetch();
         }
-    }, dependencies); // eslint-disable-line react-hooks/exhaustive-deps
+        // We deliberately want to re-run when items in `dependencies` change
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, dependencies);
 
     return {
         data,
