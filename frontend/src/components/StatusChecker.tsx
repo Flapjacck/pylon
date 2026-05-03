@@ -4,96 +4,56 @@
  * Auto-polls the health endpoint every 5 seconds
  */
 
-import { useEffect, useState } from 'react';
 import { fetchHealth } from '../services/api';
-import type { HealthResponse, ApiError } from '../types/api';
+import type { HealthResponse } from '../types/api';
+import { usePolling } from '../hooks/usePolling';
 
 export function StatusChecker() {
-  const [status, setStatus] = useState<'connected' | 'disconnected' | 'loading'>(
-    'loading'
-  );
-  const [healthData, setHealthData] = useState<HealthResponse | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error, isLoading, refetch } = usePolling<HealthResponse>(() => fetchHealth(), {
+    interval: 10000,
+  });
 
-  useEffect(() => {
-    let pollingInterval: ReturnType<typeof setInterval>;
+  const status = isLoading ? 'loading' : data ? 'connected' : error ? 'disconnected' : 'loading';
 
-    const checkHealth = async () => {
-      try {
-        setStatus('loading');
-        const data = await fetchHealth();
-        setHealthData(data);
-        setStatus('connected');
-        setError(null);
-      } catch (err) {
-        const apiError = err as ApiError;
-        setStatus('disconnected');
-        setError(apiError.message);
-        setHealthData(null);
-      }
-    };
-
-    // Initial check
-    checkHealth();
-
-    // Poll every 5 seconds
-    pollingInterval = setInterval(checkHealth, 5000);
-
-    return () => clearInterval(pollingInterval);
-  }, []);
+  const borderColor =
+    status === 'connected'
+      ? 'var(--success)'
+      : status === 'loading'
+      ? 'var(--warning)'
+      : 'var(--danger)';
 
   return (
-    <div
-      style={{
-        padding: '16px',
-        margin: '16px',
-        borderRadius: '8px',
-        backgroundColor: '#f5f5f5',
-        border: `2px solid ${
-          status === 'connected' ? '#10b981' : status === 'loading' ? '#f59e0b' : '#ef4444'
-        }`,
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-      }}
-    >
-      <div style={{ marginBottom: '12px' }}>
-        <span
-          style={{
-            display: 'inline-block',
-            width: '12px',
-            height: '12px',
-            borderRadius: '50%',
-            backgroundColor:
-              status === 'connected' ? '#10b981' : status === 'loading' ? '#f59e0b' : '#ef4444',
-            marginRight: '8px',
-            animation: status === 'loading' ? 'pulse 1.5s infinite' : 'none',
-          }}
-        />
-        <strong>Backend Connection: </strong>
-        {status === 'connected' && <span style={{ color: '#10b981' }}>Connected</span>}
-        {status === 'disconnected' && <span style={{ color: '#ef4444' }}>Disconnected</span>}
-        {status === 'loading' && <span style={{ color: '#f59e0b' }}>Checking...</span>}
+    <div className="card m-4 p-4" style={{ backgroundColor: 'var(--surface)', border: `2px solid ${borderColor}` }}>
+      <div className="flex items-center gap-3 mb-3">
+        <span className="status-dot" style={{ backgroundColor: borderColor, animation: isLoading ? 'pulse 1.5s infinite' : 'none' }} />
+        <strong style={{ color: 'var(--text)' }}>Backend Connection:</strong>
+        <span style={{ color: borderColor }}>
+          {status === 'connected' && ' Connected'}
+          {status === 'disconnected' && ' Disconnected'}
+          {status === 'loading' && ' Checking...'}
+        </span>
+        <div className="ml-auto">
+          <button className="btn btn-ghost" onClick={() => refetch()} disabled={isLoading}>Check</button>
+        </div>
       </div>
 
-      {healthData && (
-        <div style={{ fontSize: '14px', color: '#333' }}>
-          <div>Status: <code style={{ backgroundColor: '#e5e7eb', padding: '2px 4px' }}>{healthData.status}</code></div>
-          <div>Uptime: <code style={{ backgroundColor: '#e5e7eb', padding: '2px 4px' }}>{healthData.uptime_seconds.toFixed(1)}s</code></div>
-          <div>Last Check: <code style={{ backgroundColor: '#e5e7eb', padding: '2px 4px' }}>{new Date(healthData.timestamp).toLocaleTimeString()}</code></div>
+      {data && (
+        <div className="text-sm" style={{ color: 'var(--muted)' }}>
+          <div>
+            Status: <code style={{ background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: 4 }}>{data.status}</code>
+          </div>
+          <div>Uptime: <code style={{ background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: 4 }}>{data.uptime_seconds.toFixed(1)}s</code></div>
+          <div>Last Check: <code style={{ background: 'rgba(255,255,255,0.02)', padding: '2px 6px', borderRadius: 4 }}>{new Date(data.timestamp).toLocaleTimeString()}</code></div>
         </div>
       )}
 
       {error && (
-        <div style={{ fontSize: '14px', color: '#ef4444', marginTop: '8px' }}>
-          ⚠️ {error}
+        <div className="text-sm mt-3" style={{ color: 'var(--danger)' }}>
+          ⚠️ {(error as any).message}
         </div>
       )}
 
-      <style>{`
-        @keyframes pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.5; }
-        }
-      `}</style>
+      <style>{`@keyframes pulse { 0%,100% { opacity: 1 } 50% { opacity: 0.5 } }`}</style>
     </div>
   );
 }
