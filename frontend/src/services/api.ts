@@ -15,7 +15,10 @@ import type {
     ContainerActionResponse,
 } from '../types/api';
 
-const API_BASE_URL = 'http://localhost:8000';
+// Use relative URLs so requests are routed through the frontend's origin
+// In Docker, nginx proxies /docker, /health, and root routes to the backend
+// In local dev, update CORS_ORIGINS in backend .env if making direct backend calls
+const API_BASE_URL = '';
 
 /**
  * Axios instance configured with base URL and default headers
