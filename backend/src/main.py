@@ -12,8 +12,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from typing import Dict, Any
 
-from config import settings
-from routes import health_router, docker_router
+from .config import settings
+from .routes import health_router, docker_router
 
 # Configure logging for request/response tracking
 logging.basicConfig(

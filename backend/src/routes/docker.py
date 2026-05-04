@@ -11,14 +11,14 @@ from fastapi import APIRouter, Depends
 from docker.client import DockerClient
 from docker.errors import APIError
 
-from middleware.docker_client import get_docker_client_dependency
-from controllers.docker import (
+from ..middleware.docker_client import get_docker_client_dependency
+from ..controllers.docker import (
     list_containers_controller,
     get_container_status_controller,
     start_container_controller,
     stop_container_controller,
 )
-from schemas.docker import (
+from ..schemas.docker import (
     ContainerListResponse,
     ContainerStatusResponse,
     ContainerActionResponse,
