@@ -4,6 +4,7 @@ This module uses Pydantic BaseSettings to manage environment variables
 and provide type-safe configuration across the application.
 """
 
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -20,18 +21,19 @@ class Settings(BaseSettings):
         cors_origins: List of allowed CORS origins for frontend requests
         environment: Runtime environment (development/production)
     """
+    model_config = ConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+        extra="ignore"  # Ignore extra environment variables
+    )
 
     api_title: str = "Title"
     api_version: str = "0.1.0"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
     cors_origins: List[str] = ["http://localhost:5173"]
-
-    class Config:
-        """Pydantic config - load from .env file in project root."""
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    environment: str = "development"
 
 
 # Create global settings instance

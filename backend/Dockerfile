@@ -9,16 +9,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Install uv package manager
+RUN pip install --no-cache-dir uv
+
 # Copy pyproject.toml and build requirements
 COPY pyproject.toml .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -e .
+# Install Python dependencies using uv
+RUN uv pip install --no-cache-dir -e .
 
 # Copy source code
 COPY src/ ./src/
 
-# Expose the API port
+# Copy public assets (favicon, etc.)
+COPY public/ ./public/
 EXPOSE 8000
 
 # Set default environment variables (can be overridden by docker-compose)
