@@ -7,7 +7,9 @@ All requests from the Vite frontend (localhost:5173) are allowed via CORS.
 
 import logging
 import socket
+from pathlib import Path
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from typing import Dict, Any
@@ -78,6 +80,13 @@ def create_app() -> FastAPI:
             "version": settings.api_version,
             "status": "running"
         }
+
+    # Mount static files (favicon, site.webmanifest, etc.) at root LAST
+    # After all other routes to avoid catching API requests
+    # Serve favicon files directly at / (e.g., /favicon.ico, /site.webmanifest)
+    static_path = Path(__file__).parent.parent / "public"
+    if static_path.exists():
+        app.mount("/", StaticFiles(directory=str(static_path), html=False), name="static")
 
     return app
 
