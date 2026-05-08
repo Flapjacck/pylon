@@ -3,9 +3,9 @@ requires = ["hatchling", "uv"]
 build-backend = "hatchling.build"
 
 [project]
-name = "terraria-server-manager"
+name = "pylon"
 version = "0.1.0"
-description = "Terraria server management backend"
+description = "Pylon server management backend"
 requires-python = ">=3.10"
 dependencies = [
     "fastapi==0.104.1",

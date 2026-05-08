@@ -8,7 +8,7 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - API_TITLE=Terraria Server Manager
+      - API_TITLE=Pylon
       - API_VERSION=0.1.0
       - API_HOST=0.0.0.0
       - API_PORT=8000
@@ -19,7 +19,7 @@ services:
       # Read-only access for safety; remove :ro if write operations needed
       - /var/run/docker.sock:/var/run/docker.sock:ro
     networks:
-      - terraria-net
+      - pylon-net
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:8000/health" ]
@@ -45,7 +45,7 @@ services:
       backend:
         condition: service_healthy
     networks:
-      - terraria-net
+      - pylon-net
     restart: unless-stopped
     healthcheck:
       test: [ "CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:5173/" ]
@@ -60,7 +60,7 @@ services:
         max-file: "3"
 
 networks:
-  terraria-net:
+  pylon-net:
     driver: bridge
     ipam:
       config:
