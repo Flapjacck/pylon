@@ -1,0 +1,101 @@
+name: Docker Compose Integration Tests
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker images
+        run: docker-compose build
+
+      - name: Start services
+        run: docker-compose up -d
+
+      - name: Wait for services to be healthy
+        run: |
+          echo "Waiting for services to be healthy..."
+          max_attempts=30
+          attempt=0
+          while [ $attempt -lt $max_attempts ]; do
+            # Check if both services are running and healthy
+            backend_status=$(docker-compose ps backend --format json | jq -r '.[0].State' 2>/dev/null || echo "")
+            frontend_status=$(docker-compose ps frontend --format json | jq -r '.[0].State' 2>/dev/null || echo "")
+            
+            if [ "$backend_status" = "running" ] && [ "$frontend_status" = "running" ]; then
+              echo "✓ Both services are running"
+              break
+            fi
+            
+            echo "Waiting... (attempt $((attempt+1))/$max_attempts)"
+            sleep 2
+            attempt=$((attempt+1))
+          done
+          
+          # Show service status for debugging
+          echo "Service status:"
+          docker-compose ps
+
+      - name: Test backend health endpoint
+        run: |
+          echo "Testing backend health endpoint..."
+          response=$(docker-compose exec -T backend curl -f -s http://localhost:8000/health)
+          
+          # Validate JSON response
+          echo "Health response: $response"
+          
+          # Check that status is "healthy"
+          status=$(echo "$response" | jq -r '.status' 2>/dev/null)
+          if [ "$status" != "healthy" ]; then
+            echo "❌ Backend health status is not 'healthy', got: $status"
+            exit 1
+          fi
+          
+          # Verify required fields exist
+          timestamp=$(echo "$response" | jq -r '.timestamp' 2>/dev/null)
+          uptime=$(echo "$response" | jq -r '.uptime_seconds' 2>/dev/null)
+          
+          if [ -z "$timestamp" ] || [ -z "$uptime" ]; then
+            echo "❌ Missing required fields in health response"
+            exit 1
+          fi
+          
+          echo "✓ Backend health check passed"
+
+      - name: Test frontend container is reachable
+        run: |
+          echo "Testing frontend container reachability..."
+          docker-compose exec -T backend curl -f -s http://frontend:5173/ > /dev/null
+          echo "✓ Frontend container is reachable from backend"
+
+      - name: Test backend health endpoint from frontend
+        run: |
+          echo "Testing backend health endpoint from frontend container..."
+          response=$(docker-compose exec -T frontend curl -f -s http://backend:8000/health)
+          
+          status=$(echo "$response" | jq -r '.status' 2>/dev/null)
+          if [ "$status" != "healthy" ]; then
+            echo "❌ Backend health status is not 'healthy' when accessed from frontend"
+            exit 1
+          fi
+          
+          echo "✓ Backend is reachable and healthy from frontend"
+
+      - name: Show service logs on failure
+        if: failure()
+        run: docker-compose logs --tail=50
+
+      - name: Cleanup
+        if: always()
+        run: docker-compose down
