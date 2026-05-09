@@ -18,10 +18,10 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Build Docker images
-        run: docker-compose build
+        run: docker compose build
 
       - name: Start services
-        run: docker-compose up -d
+        run: docker compose up -d
 
       - name: Wait for services to be healthy
         run: |
@@ -30,8 +30,8 @@ jobs:
           attempt=0
           while [ $attempt -lt $max_attempts ]; do
             # Check if both services are running and healthy
-            backend_status=$(docker-compose ps backend --format json | jq -r '.[0].State' 2>/dev/null || echo "")
-            frontend_status=$(docker-compose ps frontend --format json | jq -r '.[0].State' 2>/dev/null || echo "")
+            backend_status=$(docker compose ps backend --format json | jq -r '.[0].State' 2>/dev/null || echo "")
+            frontend_status=$(docker compose ps frontend --format json | jq -r '.[0].State' 2>/dev/null || echo "")
             
             if [ "$backend_status" = "running" ] && [ "$frontend_status" = "running" ]; then
               echo "✓ Both services are running"
@@ -45,12 +45,12 @@ jobs:
           
           # Show service status for debugging
           echo "Service status:"
-          docker-compose ps
+          docker compose ps
 
       - name: Test backend health endpoint
         run: |
           echo "Testing backend health endpoint..."
-          response=$(docker-compose exec -T backend curl -f -s http://localhost:8000/health)
+          response=$(docker compose exec -T backend curl -f -s http://localhost:8000/health)
           
           # Validate JSON response
           echo "Health response: $response"
@@ -76,13 +76,13 @@ jobs:
       - name: Test frontend container is reachable
         run: |
           echo "Testing frontend container reachability..."
-          docker-compose exec -T backend curl -f -s http://frontend:5173/ > /dev/null
+          docker compose exec -T backend curl -f -s http://frontend:5173/ > /dev/null
           echo "✓ Frontend container is reachable from backend"
 
       - name: Test backend health endpoint from frontend
         run: |
           echo "Testing backend health endpoint from frontend container..."
-          response=$(docker-compose exec -T frontend curl -f -s http://backend:8000/health)
+          response=$(docker compose exec -T frontend curl -f -s http://backend:8000/health)
           
           status=$(echo "$response" | jq -r '.status' 2>/dev/null)
           if [ "$status" != "healthy" ]; then
@@ -94,8 +94,8 @@ jobs:
 
       - name: Show service logs on failure
         if: failure()
-        run: docker-compose logs --tail=50
+        run: docker compose logs --tail=50
 
       - name: Cleanup
         if: always()
-        run: docker-compose down
+        run: docker compose down
