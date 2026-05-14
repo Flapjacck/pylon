@@ -34,6 +34,16 @@ class Settings(BaseSettings):
     api_port: int = 8000
     cors_origins: List[str] = ["http://localhost:5173"]
     environment: str = "development"
+    
+    # Terraria server configuration
+    terraria_config_path: str = "/opt/pylon/servers/"
+    """Base path on the host where Terraria server configs and worlds are stored"""
+    
+    terraria_docker_image_vanilla: str = "passivelemon/terraria-docker:terraria-latest"
+    """Docker image for vanilla Terraria servers"""
+    
+    terraria_docker_image_modded: str = "passivelemon/terraria-docker:tmodloader-latest"
+    """Docker image for modded Terraria servers with tModLoader support"""
 
 
 # Create global settings instance
