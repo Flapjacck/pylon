@@ -7,8 +7,9 @@ Routes delegate to modular controller functions that handle business logic
 and error handling.
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
 from docker.errors import APIError
+from docker import DockerClient
 
 from ..schemas.terraria import (
     TerrariaServerListResponse,
@@ -17,6 +18,9 @@ from ..schemas.terraria import (
     TerrariaServerConfigRequest,
     TerrariaServerActionResponse,
 )
+from ..controllers.terraria.newServer import new_server_controller
+from ..middleware.docker_client import get_docker_client_dependency
+from ..config.settings import Settings
 
 router = APIRouter(
     prefix="/terraria",
@@ -28,27 +32,37 @@ router = APIRouter(
 @router.post("/servers", response_model=TerrariaServerActionResponse)
 async def create_terraria_server(
     request: TerrariaServerCreateRequest,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
+    settings: Settings = Depends(lambda: Settings()),
 ) -> TerrariaServerActionResponse:
     """
     Create a new Terraria server.
     
     Args:
-        request: TerrariaServerCreateRequest with server_name, world_size, difficulty, port
+        request: TerrariaServerCreateRequest with server_type, server_name, worldname, maxplayers, password, difficulty, port
+        docker_client: Docker SDK client (injected dependency)
+        settings: Application settings with terraria_config_path (injected dependency)
     
     Returns:
         TerrariaServerActionResponse with creation result and server details
-    
-    TODO: Call create_terraria_server_controller(request)
     """
     try:
-        # TODO: Call controller
-        # result = await create_terraria_server_controller(request)
-        # return result
-        pass
+        result = await new_server_controller(
+            docker_client=docker_client,
+            request=request,
+            config_path=settings.terraria_config_path,
+        )
+        
+        # If controller returned success=False, still return 200 but client should check success flag
+        if not result.success:
+            # Optionally could raise HTTPException here instead
+            return result
+        
+        return result
     except APIError as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except Exception as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Failed to create Terraria server: {str(e)}")
 
 
 @router.get("/servers", response_model=TerrariaServerListResponse)
