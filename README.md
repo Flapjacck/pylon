@@ -90,3 +90,7 @@ docker-compose up -d --build
 | Frontend | `http://localhost:5173` |
 
 Both services include health checks configured in `docker-compose.yml`. The frontend depends on the backend being healthy before starting.
+
+## Credits & Attribution
+
+- **Terraria Server Docker Image**: This project uses the [terraria-docker](https://github.com/PassiveLemon/terraria-docker) Docker image by [PassiveLemon](https://github.com/PassiveLemon). For detailed documentation on server configuration and environment variables, please refer to the [terraria-docker repository](https://github.com/PassiveLemon/terraria-docker).
