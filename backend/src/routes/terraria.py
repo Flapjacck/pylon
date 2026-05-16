@@ -19,6 +19,7 @@ from ..schemas.terraria import (
     TerrariaServerActionResponse,
 )
 from ..controllers.terraria.newServer import new_server_controller
+from ..controllers.terraria.listServers import list_servers_controller
 from ..middleware.docker_client import get_docker_client_dependency
 from ..config.settings import Settings
 
@@ -66,24 +67,22 @@ async def create_terraria_server(
 
 
 @router.get("/servers", response_model=TerrariaServerListResponse)
-async def list_terraria_servers() -> TerrariaServerListResponse:
+async def list_terraria_servers(
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
+) -> TerrariaServerListResponse:
     """
     List all Terraria servers.
     
     Returns:
         TerrariaServerListResponse with list of all servers and count
-    
-    TODO: Call list_terraria_servers_controller()
     """
     try:
-        # TODO: Call controller
-        # result = await list_terraria_servers_controller()
-        # return result
-        pass
+        result = await list_servers_controller(docker_client=docker_client)
+        return result
     except APIError as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except Exception as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Failed to list Terraria servers: {str(e)}")
 
 
 @router.get("/servers/{server_name}", response_model=TerrariaServerStatusResponse)

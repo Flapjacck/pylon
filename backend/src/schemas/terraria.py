@@ -40,13 +40,32 @@ class TerrariaServerConfigRequest(BaseModel):
 class TerrariaServerInfo(BaseModel):
     """Information about a Terraria server."""
     
+    container_id: str
+    """Docker container ID (short form, 12 characters)"""
+    
     server_name: str
-    port: int
+    """Name of the server container"""
+    
+    server_type: Literal["vanilla", "modded"]
+    """Type of Terraria server: vanilla or tModLoader modded"""
+    
     status: str
-    world_size: str
-    difficulty: str
-    player_count: int
+    """Container status: running, exited, paused, restarting"""
+    
+    port: int
+    """Server port (from Docker port mapping)"""
+    
+    worldname: str
+    """Name of the world file"""
+    
+    difficulty: int
+    """Difficulty level: 0=Normal, 1=Expert, 2=Master, 3=Journey"""
+    
     max_players: int
+    """Maximum number of players allowed"""
+    
+    has_password: bool
+    """Whether the server requires a password to join"""
 
 
 class TerrariaServerStatusResponse(BaseModel):
