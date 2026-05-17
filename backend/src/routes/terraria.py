@@ -21,7 +21,7 @@ from ..schemas.terraria import (
 from ..controllers.terraria.newServer import new_server_controller
 from ..controllers.terraria.listServers import list_servers_controller
 from ..middleware.docker_client import get_docker_client_dependency
-from ..config.settings import Settings
+from ..config.settings import settings
 
 router = APIRouter(
     prefix="/terraria",
@@ -34,7 +34,6 @@ router = APIRouter(
 async def create_terraria_server(
     request: TerrariaServerCreateRequest,
     docker_client: DockerClient = Depends(get_docker_client_dependency),
-    settings: Settings = Depends(lambda: Settings()),
 ) -> TerrariaServerActionResponse:
     """
     Create a new Terraria server.
@@ -42,7 +41,6 @@ async def create_terraria_server(
     Args:
         request: TerrariaServerCreateRequest with server_type, server_name, worldname, maxplayers, password, difficulty, port
         docker_client: Docker SDK client (injected dependency)
-        settings: Application settings with terraria_config_path (injected dependency)
     
     Returns:
         TerrariaServerActionResponse with creation result and server details
