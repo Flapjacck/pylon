@@ -7,7 +7,7 @@ from docker.errors import APIError
 from ..schemas.terraria import TerrariaServerCreateRequest, TerrariaServerActionResponse
 
 
-async def new_server_controller(
+def new_server_controller(
     docker_client: DockerClient,
     request: TerrariaServerCreateRequest,
     config_path: str,

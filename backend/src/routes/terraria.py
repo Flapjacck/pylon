@@ -46,7 +46,7 @@ async def create_terraria_server(
         TerrariaServerActionResponse with creation result and server details
     """
     try:
-        result = await new_server_controller(
+        result = new_server_controller(
             docker_client=docker_client,
             request=request,
             config_path=settings.terraria_config_path,
@@ -75,7 +75,7 @@ async def list_terraria_servers(
         TerrariaServerListResponse with list of all servers and count
     """
     try:
-        result = await list_servers_controller(docker_client=docker_client)
+        result = list_servers_controller(docker_client=docker_client)
         return result
     except APIError as e:
         raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")

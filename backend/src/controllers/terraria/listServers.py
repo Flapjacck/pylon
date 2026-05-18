@@ -5,7 +5,7 @@ from docker.errors import APIError
 from ..schemas.terraria import TerrariaServerInfo, TerrariaServerListResponse
 
 
-async def list_servers_controller(
+def list_servers_controller(
     docker_client: DockerClient,
 ) -> TerrariaServerListResponse:
     """
@@ -75,24 +75,45 @@ def _extract_server_info(container) -> TerrariaServerInfo:
     
     # Extract environment variables from container config
     env_vars = {}
-    if container.attrs and "Config" in container.attrs and "Env" in container.attrs["Config"]:
-        for env_str in container.attrs["Config"]["Env"]:
-            if "=" in env_str:
-                key, value = env_str.split("=", 1)
-                env_vars[key] = value
+    try:
+        if container.attrs and "Config" in container.attrs:
+            env_list = container.attrs.get("Config", {}).get("Env", [])
+            if env_list:
+                for env_str in env_list:
+                    if "=" in env_str:
+                        key, value = env_str.split("=", 1)
+                        env_vars[key] = value
+    except (KeyError, TypeError, AttributeError):
+        # If we can't extract env vars, continue with defaults
+        pass
     
     # Determine server type based on image name
     image_name = ""
-    if container.image and container.image.tags:
-        image_name = container.image.tags[0] if container.image.tags else ""
+    try:
+        if container.image and hasattr(container.image, 'tags') and container.image.tags:
+            image_name = container.image.tags[0] if container.image.tags else ""
+    except (AttributeError, IndexError):
+        pass
     
     server_type = "modded" if "tmodloader" in image_name.lower() else "vanilla"
     
-    # Extract configuration from environment variables
+    # Extract configuration from environment variables with safe defaults
     worldname = env_vars.get("WORLDNAME", "World")
-    port = int(env_vars.get("PORT", 7777))
-    difficulty = int(env_vars.get("DIFFICULTY", 0))
-    max_players = int(env_vars.get("MAXPLAYERS", 8))
+    try:
+        port = int(env_vars.get("PORT", 7777))
+    except (ValueError, TypeError):
+        port = 7777
+    
+    try:
+        difficulty = int(env_vars.get("DIFFICULTY", 0))
+    except (ValueError, TypeError):
+        difficulty = 0
+    
+    try:
+        max_players = int(env_vars.get("MAXPLAYERS", 8))
+    except (ValueError, TypeError):
+        max_players = 8
+    
     has_password = "PASSWORD" in env_vars
     
     return TerrariaServerInfo(
