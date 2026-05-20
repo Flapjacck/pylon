@@ -12,7 +12,7 @@ services:
       - API_VERSION=0.1.0
       - API_HOST=0.0.0.0
       - API_PORT=8000
-      - CORS_ORIGINS=http://localhost:5173,http://frontend:5173
+      - CORS_ORIGINS=["http://localhost:5173","http://frontend:5173"]
       - ENVIRONMENT=production
     volumes:
       # Mount Docker socket to allow backend to control sibling containers

@@ -4,7 +4,9 @@ This module uses Pydantic BaseSettings to manage environment variables
 and provide type-safe configuration across the application.
 """
 
-from pydantic import ConfigDict, field_validator
+import json
+import os
+from pydantic import ConfigDict
 from pydantic_settings import BaseSettings
 from typing import List
 
@@ -18,7 +20,7 @@ class Settings(BaseSettings):
         api_version: API semantic version
         api_host: Server bind address (default: 0.0.0.0)
         api_port: Server port (default: 8000)
-        cors_origins: List of allowed CORS origins for frontend requests (comma-separated)
+        cors_origins: List of allowed CORS origins for frontend requests
         environment: Runtime environment (development/production)
     """
     model_config = ConfigDict(
@@ -32,7 +34,7 @@ class Settings(BaseSettings):
     api_version: str = "0.1.0"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
-    cors_origins: List[str] = ["http://localhost:5173"]
+    cors_origins: List[str] = ["http://localhost:5173", "http://frontend:5173"]
     environment: str = "development"
     
     # Terraria server configuration
@@ -45,14 +47,19 @@ class Settings(BaseSettings):
     terraria_docker_image_modded: str = "passivelemon/terraria-docker:tmodloader-latest"
     """Docker image for modded Terraria servers with tModLoader support"""
     
-    @field_validator("cors_origins", mode="before")
-    @classmethod
-    def parse_cors_origins(cls, v):
-        """Parse comma-separated CORS origins from environment variables."""
-        if isinstance(v, str):
-            # Split by comma and strip whitespace
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
-        return v
+    def __init__(self, **data):
+        """Override init to handle CORS_ORIGINS parsing from environment."""
+        # Handle CORS_ORIGINS environment variable (can be JSON string or raw)
+        cors_env = os.getenv("CORS_ORIGINS")
+        if cors_env and "cors_origins" not in data:
+            try:
+                # Try parsing as JSON first (e.g., '["http://localhost:5173","http://frontend:5173"]')
+                data["cors_origins"] = json.loads(cors_env)
+            except (json.JSONDecodeError, ValueError):
+                # If not JSON, treat as single origin
+                data["cors_origins"] = [cors_env]
+        
+        super().__init__(**data)
 
 
 # Create global settings instance
