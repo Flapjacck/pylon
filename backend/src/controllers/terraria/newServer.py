@@ -4,7 +4,7 @@ import os
 from pathlib import Path
 from docker import DockerClient
 from docker.errors import APIError
-from ..schemas.terraria import TerrariaServerCreateRequest, TerrariaServerActionResponse
+from ...schemas.terraria import TerrariaServerCreateRequest, TerrariaServerActionResponse
 
 
 def new_server_controller(

@@ -2,7 +2,7 @@
 
 from docker import DockerClient
 from docker.errors import APIError
-from ..schemas.terraria import TerrariaServerInfo, TerrariaServerListResponse
+from ...schemas.terraria import TerrariaServerInfo, TerrariaServerListResponse
 
 
 def list_servers_controller(
