@@ -20,6 +20,8 @@ from ..schemas.terraria import (
 )
 from ..controllers.terraria.newServer import new_server_controller
 from ..controllers.terraria.listServers import list_servers_controller
+from ..controllers.terraria.start import start_terraria_server_controller
+from ..controllers.terraria.stop import stop_terraria_server_controller
 from ..middleware.docker_client import get_docker_client_dependency
 from ..config.settings import settings
 
@@ -166,50 +168,64 @@ async def delete_terraria_server(
 @router.post("/servers/{server_name}/start", response_model=TerrariaServerActionResponse)
 async def start_terraria_server(
     server_name: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
 ) -> TerrariaServerActionResponse:
     """
     Start a Terraria server.
     
     Args:
         server_name: The name of the server to start
+        docker_client: Docker SDK client (injected dependency)
     
     Returns:
         TerrariaServerActionResponse with start operation result
-    
-    TODO: Call start_terraria_server_controller(server_name)
     """
     try:
-        # TODO: Call controller
-        # result = await start_terraria_server_controller(server_name)
-        # return result
-        pass
+        result = await start_terraria_server_controller(
+            server_name=server_name,
+            docker_client=docker_client
+        )
+        return TerrariaServerActionResponse(
+            success=result["success"],
+            data=result["data"]
+        )
     except APIError as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except Exception as e:
+        # HTTPExceptions from controller are already properly formatted
         raise
 
 
 @router.post("/servers/{server_name}/stop", response_model=TerrariaServerActionResponse)
 async def stop_terraria_server(
     server_name: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
 ) -> TerrariaServerActionResponse:
     """
-    Stop a Terraria server.
+    Stop a Terraria server with graceful shutdown.
+    
+    Performs graceful shutdown by injecting a /save command to let Terraria
+    save the world safely before stopping the container. This prevents world
+    file corruption.
     
     Args:
         server_name: The name of the server to stop
+        docker_client: Docker SDK client (injected dependency)
     
     Returns:
-        TerrariaServerActionResponse with stop operation result
-    
-    TODO: Call stop_terraria_server_controller(server_name)
+        TerrariaServerActionResponse with stop operation result and graceful_shutdown flag
     """
     try:
-        # TODO: Call controller
-        # result = await stop_terraria_server_controller(server_name)
-        # return result
-        pass
+        result = await stop_terraria_server_controller(
+            server_name=server_name,
+            docker_client=docker_client
+        )
+        return TerrariaServerActionResponse(
+            success=result["success"],
+            data=result["data"]
+        )
     except APIError as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except Exception as e:
+        # HTTPExceptions from controller are already properly formatted
         raise
