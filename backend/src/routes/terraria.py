@@ -20,6 +20,7 @@ from ..schemas.terraria import (
 )
 from ..controllers.terraria.newServer import new_server_controller
 from ..controllers.terraria.listServers import list_servers_controller
+from ..controllers.terraria.getStatus import get_terraria_server_status_controller
 from ..controllers.terraria.start import start_terraria_server_controller
 from ..controllers.terraria.stop import stop_terraria_server_controller
 from ..middleware.docker_client import get_docker_client_dependency
@@ -88,27 +89,28 @@ async def list_terraria_servers(
 @router.get("/servers/{server_name}", response_model=TerrariaServerStatusResponse)
 async def get_terraria_server_status(
     server_name: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
 ) -> TerrariaServerStatusResponse:
     """
     Get the detailed status of a specific Terraria server.
     
     Args:
         server_name: The name of the server
+        docker_client: Docker SDK client (injected dependency)
     
     Returns:
         TerrariaServerStatusResponse with detailed server status
-    
-    TODO: Call get_terraria_server_status_controller(server_name)
     """
     try:
-        # TODO: Call controller
-        # result = await get_terraria_server_status_controller(server_name)
-        # return result
-        pass
+        result = get_terraria_server_status_controller(
+            server_name=server_name,
+            docker_client=docker_client
+        )
+        return result
     except APIError as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except Exception as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Failed to get server status: {str(e)}")
 
 
 @router.put("/servers/{server_name}/config", response_model=TerrariaServerActionResponse)
