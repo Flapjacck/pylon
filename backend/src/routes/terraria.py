@@ -23,6 +23,7 @@ from ..controllers.terraria.listServers import list_servers_controller
 from ..controllers.terraria.getStatus import get_terraria_server_status_controller
 from ..controllers.terraria.start import start_terraria_server_controller
 from ..controllers.terraria.stop import stop_terraria_server_controller
+from ..controllers.terraria.delete import delete_terraria_server_controller
 from ..middleware.docker_client import get_docker_client_dependency
 from ..config.settings import settings
 
@@ -144,26 +145,37 @@ async def update_terraria_server_config(
 @router.delete("/servers/{server_name}", response_model=TerrariaServerActionResponse)
 async def delete_terraria_server(
     server_name: str,
+    docker_client: DockerClient = Depends(get_docker_client_dependency),
 ) -> TerrariaServerActionResponse:
     """
     Delete/destroy a Terraria server.
     
+    Performs complete cleanup including:
+    1. Graceful shutdown if server is running (injects /save command)
+    2. Removal of Docker container
+    3. Removal of host directory containing server data
+    
     Args:
         server_name: The name of the server to delete
+        docker_client: Docker SDK client (injected dependency)
     
     Returns:
         TerrariaServerActionResponse with deletion result
-    
-    TODO: Call delete_terraria_server_controller(server_name)
     """
     try:
-        # TODO: Call controller
-        # result = await delete_terraria_server_controller(server_name)
-        # return result
-        pass
+        result = await delete_terraria_server_controller(
+            server_name=server_name,
+            docker_client=docker_client,
+            config_path=settings.terraria_config_path
+        )
+        return TerrariaServerActionResponse(
+            success=result["success"],
+            data=result["data"]
+        )
     except APIError as e:
-        raise
+        raise HTTPException(status_code=500, detail=f"Docker error: {str(e)}")
     except Exception as e:
+        # HTTPExceptions from controller are already properly formatted
         raise
 
 
